@@ -1,4 +1,6 @@
 import socket
+from time import sleep
+import threading
 '''
 create a basic HTTP server that listens on port 80
 and can handle a single TCP connection at a time. 
@@ -6,18 +8,24 @@ For all requests we’ll return some text that describes
 the requested path.
 '''
 
-# create an INET, STREAMing socket
-serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-# bind the socket to the address of our server and the HTTP port
-serversocket.bind(("localhost", 80))
-# become a server socket
-serversocket.listen(5)
+def start_server(host, port):
+  # create an INET, STREAMing socket
+  serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+  # bind the socket to the address of our server and the HTTP port
+  serversocket.bind((host, port))
+  # become a server socket
+  serversocket.listen(100)
 
-while True:
-  # accept connections from outside
-  (clientsocket, address) = serversocket.accept()
-  print("New connection from", clientsocket, address)
+  print(f"Server listening on {host}:{port}")
 
+  while True:
+    # accept connections from outside
+    (clientsocket, address) = serversocket.accept()
+    # start a new thread to hande the client
+    client_thread = threading.Thread(target=handle_client, args=(clientsocket,))
+    client_thread.start()
+
+def handle_client(clientsocket):
   try:
     # request processing
     request = clientsocket.recv(1024).decode()
@@ -26,6 +34,9 @@ while True:
     requested_path = header_list[1]
     if requested_path == "/":
       requested_path = "index.html"
+    
+    thread_id = threading.current_thread().ident
+    print(f"Path: {requested_path}, THread ID: {thread_id}")
 
     try:
       with open(f"www/{requested_path}", encoding="utf-8") as f:
@@ -45,3 +56,7 @@ while True:
   finally:
     clientsocket.close()
   
+if __name__ == "__main__":
+  HOST = "localhost"
+  PORT = 80
+  start_server(HOST, PORT)
