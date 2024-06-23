@@ -18,22 +18,30 @@ while True:
   (clientsocket, address) = serversocket.accept()
   print("New connection from", clientsocket, address)
 
-  # request processing
-  request = clientsocket.recv(1024).decode()
-  request_lines = request.split("\r\n")
-  header_list = request_lines[0].split()
-  requested_path = header_list[1]
-  
-  if requested_path == "/":
-    requested_path = "index.html"
+  try:
+    # request processing
+    request = clientsocket.recv(1024).decode()
+    request_lines = request.split("\r\n")
+    header_list = request_lines[0].split()
+    requested_path = header_list[1]
+    if requested_path == "/":
+      requested_path = "index.html"
 
-  with open(f"www/{requested_path}", encoding="utf-8") as f:
-    response_body = f.read()
+    try:
+      with open(f"www/{requested_path}", encoding="utf-8") as f:
+        response_body = f.read()
 
-    # send a response to client
-    response_headers = "HTTP/1.1 200 OK\r\n\r\n"
-    response_message = response_headers + response_body
+      # send a response to client
+      response_headers = "HTTP/1.1 200 OK\r\n\r\n"
+      response_message = response_headers + response_body
+    except FileNotFoundError:
+      response_body = "404 Not Found"
+      response_headers = "HTTP/1.1 404 Not Found\r\n\r\n"
+      response_message = response_headers + response_body
+
     clientsocket.sendall(response_message.encode())
+  except Exception as e:
+    print(f"Error processing request: {e}")
+  finally:
     clientsocket.close()
-    print("Sent a response!")
   
