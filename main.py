@@ -1,3 +1,4 @@
+import os
 import socket
 from time import sleep
 import threading
@@ -32,14 +33,19 @@ def handle_client(clientsocket):
     request_lines = request.split("\r\n")
     header_list = request_lines[0].split()
     requested_path = header_list[1]
+
     if requested_path == "/":
       requested_path = "index.html"
-    
+
+    # normalize the path
+    requested_path = os.path.normpath(requested_path)
+    file_path = os.path.abspath(os.path.join(BASE_DIR, requested_path))
+
     thread_id = threading.current_thread().ident
-    print(f"Path: {requested_path}, THread ID: {thread_id}")
+    print(f"Path: {requested_path}\nThread ID: {thread_id}")
 
     try:
-      with open(f"www/{requested_path}", encoding="utf-8") as f:
+      with open(file_path, encoding="utf-8") as f:
         response_body = f.read()
 
       # send a response to client
@@ -59,4 +65,5 @@ def handle_client(clientsocket):
 if __name__ == "__main__":
   HOST = "localhost"
   PORT = 80
+  BASE_DIR = os.path.abspath("www")
   start_server(HOST, PORT)
