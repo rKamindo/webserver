@@ -1,12 +1,16 @@
 import os
 import socket
-from time import sleep
 import threading
+import argparse
+
 '''
-create a basic HTTP server that listens on port 80
-and can handle a single TCP connection at a time. 
-For all requests we’ll return some text that describes 
-the requested path.
+This is a basic multi-threaded HTTP web server. The default host and port the
+server socket is bound to is localhost:80. You can set the
+host and port to bind the server socket to using the following arguments:
+--host, --port
+You can specify the directory of the www folder, which is used to serve HTML documents
+using the following argument:
+--www
 '''
 
 def start_server(host, port):
@@ -37,9 +41,9 @@ def handle_client(clientsocket):
     if requested_path == "/":
       requested_path = "index.html"
 
-    # normalize the path
-    requested_path = os.path.normpath(requested_path)
-    file_path = os.path.abspath(os.path.join(BASE_DIR, requested_path))
+    # normalize the path and strip leading \
+    requested_path = os.path.normpath(requested_path).lstrip("\\")
+    file_path = os.path.join(BASE_DIR, requested_path)
 
     thread_id = threading.current_thread().ident
     print(f"Path: {requested_path}\nThread ID: {thread_id}")
@@ -63,7 +67,15 @@ def handle_client(clientsocket):
     clientsocket.close()
   
 if __name__ == "__main__":
-  HOST = "localhost"
-  PORT = 80
-  BASE_DIR = os.path.abspath("www")
-  start_server(HOST, PORT)
+  parser = argparse.ArgumentParser(description="Basic multi-threaded HTTP web server")
+  parser.add_argument("--www", default="www")
+  parser.add_argument("--host", default="localhost", help="Host to bind to")
+  parser.add_argument("--port", type=int, default=80, help="Port to bind to")
+  args = parser.parse_args()
+
+  if not os.path.isdir(args.www):
+    print(f"Error: {args.www} is not a valid directory")
+    exit(1)
+
+  BASE_DIR = os.path.abspath(args.www)
+  start_server(args.host, args.port)
